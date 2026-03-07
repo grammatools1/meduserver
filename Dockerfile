@@ -1,57 +1,25 @@
-# Multi-stage build for optimal security and size
-FROM node:20-alpine AS builder
+# Production Dockerfile for Medusa
+FROM node:20-alpine
 
+# Set working directory
 WORKDIR /server
 
-# Copy package files and install all dependencies (needed for build)
-COPY package.json yarn.lock* package-lock.json* pnpm-lock.yaml* ./
+# Copy package files
+COPY package.json yarn.lock .yarnrc.yml ./
+COPY .yarn/releases .yarn/releases
 
-RUN \
-  if [ -f yarn.lock ]; then yarn install; \
-  elif [ -f package-lock.json ]; then npm ci; \
-  elif [ -f pnpm-lock.yaml ]; then pnpm install; \
-  else echo "No lockfile found." && exit 1; fi
+# Install all dependencies
+RUN yarn install
 
 # Copy source code
 COPY . .
 
 # Build the Medusa application for production
-RUN \
-  if [ -f yarn.lock ]; then yarn medusa build; \
-  elif [ -f package-lock.json ]; then npx medusa build; \
-  elif [ -f pnpm-lock.yaml ]; then pnpm medusa build; \
-  fi
+RUN yarn medusa build
 
-# Production stage
-FROM node:20-alpine AS production
-
-# Security hardening
-RUN addgroup -g 1001 -S nodejs && \
-    adduser -S medusa -u 1001 && \
-    apk add --no-cache curl && \
-    rm -rf /var/cache/apk/* /tmp/*
-
-# IMPORTANT: Use /server as WORKDIR, not /app, to avoid conflicts
-# with Medusa Admin customizations
-WORKDIR /server
-
-# Copy only the production build output from builder
-# Medusa build outputs to .medusa/server
-COPY --from=builder --chown=medusa:nodejs /server/.medusa/server ./.medusa/server
-COPY --from=builder --chown=medusa:nodejs /server/package.json ./package.json
-
-# Create necessary directories with proper permissions
-RUN mkdir -p /server/uploads /server/logs /tmp && \
-    chown -R medusa:nodejs /server/uploads /server/logs /tmp
-
-# Switch to non-root user
-USER medusa
-
-# Health check
-HEALTHCHECK --interval=30s --timeout=3s --start-period=60s --retries=3 \
-  CMD curl -f http://localhost:9000/health || exit 1
-
+# Expose the port Medusa runs on
 EXPOSE 9000
 
-# Install production deps, run migrations, then start
+# Change to the build output directory, install production dependencies,
+# run migrations, and start the server
 CMD ["sh", "-c", "cd .medusa/server && yarn install && yarn predeploy && yarn run start"]
