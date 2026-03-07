@@ -1,21 +1,21 @@
 # Dependencies
 node_modules
-.yarn/cache
 .pnp.*
+.yarn/cache
 .yarn/install-state.gz
 
 # Build output
 dist
 build
-.next
-out
+.medusa/server/build
 
 # Data directories
 data
 uploads
 static
+logs
 
-# Environment files
+# Environment
 .env
 .env.*
 !.env.example
@@ -36,10 +36,6 @@ yarn-error.log*
 coverage
 .nyc_output
 
-# Docker
-Dockerfile
-.dockerignore
-
 # IDE
 .vscode
 .idea
@@ -54,3 +50,6 @@ Thumbs.db
 # Temp files
 tmp
 temp
+
+# Note: .yarn directory is NOT ignored - we need it!
+# .yarn
