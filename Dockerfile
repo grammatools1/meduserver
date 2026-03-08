@@ -14,11 +14,7 @@ RUN \
 # Copy source code
 COPY . .
 # Build the Medusa application for production
-RUN \
-  if [ -f yarn.lock ]; then yarn medusa build; \
-  elif [ -f package-lock.json ]; then npx medusa build; \
-  elif [ -f pnpm-lock.yaml ]; then pnpm medusa build; \
-  fi
+RUN npx -y @medusajs/medusa-cli@preview build
 # Production stage
 FROM node:20-alpine AS production
 RUN corepack enable
@@ -33,6 +29,7 @@ WORKDIR /server
 # Copy Yarn config and releases from builder (in case they were generated)
 COPY --from=builder --chown=medusa:nodejs /server/.yarnrc.yml ./
 COPY --from=builder --chown=medusa:nodejs /server/.yarn .yarn
+COPY --from=builder --chown=medusa:nodejs /server/yarn.lock ./yarn.lock
 # Copy only the production build output from builder
 # Medusa build outputs to .medusa/server
 COPY --from=builder --chown=medusa:nodejs /server/.medusa/server ./.medusa/server
@@ -42,9 +39,11 @@ RUN mkdir -p /server/uploads /server/logs /tmp /server/.yarn && \
     chown -R medusa:nodejs /server/uploads /server/logs /tmp /server/.yarn
 # Switch to non-root user
 USER medusa
+# Set production environment
+ENV NODE_ENV=production
 # Health check
 HEALTHCHECK --interval=30s --timeout=3s --start-period=60s --retries=3 \
   CMD curl -f http://localhost:9000/health || exit 1
 EXPOSE 9000
 # Install production deps, run migrations, then start
-CMD ["sh", "-c", "cd .medusa/server && yarn install && yarn predeploy && yarn run start"]
+CMD ["sh", "-c", "yarn install --production --frozen-lockfile && npx -y @medusajs/medusa-cli@preview migrations run && npx -y @medusajs/medusa-cli@preview start"]
