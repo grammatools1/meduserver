@@ -5,9 +5,11 @@ RUN corepack enable
 
 WORKDIR /server
 
-# Copy package files AND yarn config/releases before installing
+# Copy package files and yarn config
 COPY package.json yarn.lock* package-lock.json* pnpm-lock.yaml* .yarnrc.yml* ./
-COPY .yarn .yarn
+
+# Copy .yarn directory only if it exists (use a wildcard to avoid failure)
+COPY .yarn* ./.yarn/
 
 RUN \
   if [ -f yarn.lock ]; then yarn install; \
@@ -25,7 +27,7 @@ RUN \
   elif [ -f pnpm-lock.yaml ]; then pnpm medusa build; \
   fi
 
-# Verify the build output exists before proceeding
+# Verify the build output exists
 RUN ls -la /server/.medusa/server
 
 # Production stage
@@ -33,29 +35,21 @@ FROM node:20-alpine AS production
 
 RUN corepack enable
 
-# Security hardening
 RUN addgroup -g 1001 -S nodejs && \
     adduser -S medusa -u 1001 && \
     apk add --no-cache curl && \
     rm -rf /var/cache/apk/* /tmp/*
 
-# IMPORTANT: Use /server as WORKDIR to avoid conflicts with Medusa Admin customizations
 WORKDIR /server
 
-# Copy Yarn config and releases from builder
-COPY --from=builder --chown=medusa:nodejs /server/.yarnrc.yml ./
-COPY --from=builder --chown=medusa:nodejs /server/.yarn ./.yarn
-COPY --from=builder --chown=medusa:nodejs /server/yarn.lock ./yarn.lock
-
-# Copy only the production build output from builder
+COPY --from=builder --chown=medusa:nodejs /server/.yarnrc.yml* ./
+COPY --from=builder --chown=medusa:nodejs /server/yarn.lock* ./
 COPY --from=builder --chown=medusa:nodejs /server/.medusa /server/.medusa
 COPY --from=builder --chown=medusa:nodejs /server/package.json ./package.json
 
-# Create necessary directories with proper permissions
 RUN mkdir -p /server/uploads /server/logs /tmp /server/.yarn && \
     chown -R medusa:nodejs /server/uploads /server/logs /tmp /server/.yarn
 
-# Switch to non-root user
 USER medusa
 
 ENV NODE_ENV=production
@@ -65,5 +59,4 @@ HEALTHCHECK --interval=30s --timeout=3s --start-period=60s --retries=3 \
 
 EXPOSE 9000
 
-# Install production deps, run migrations (predeploy), then start
 CMD ["sh", "-c", "cd .medusa/server && yarn install && yarn predeploy && yarn run start"]
