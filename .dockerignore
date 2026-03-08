@@ -4,10 +4,10 @@ node_modules
 .yarn/cache
 .yarn/install-state.gz
 
-# Build output
+# Build output - exclude stale local builds
 dist
 build
-.medusa/server/build
+.medusa
 
 # Data directories
 data
@@ -51,5 +51,5 @@ Thumbs.db
 tmp
 temp
 
-# Note: .yarn directory is NOT ignored - we need it!
+# Note: .yarn/releases is NOT ignored - Yarn Berry needs it!
 # .yarn
