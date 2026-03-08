@@ -45,4 +45,4 @@ HEALTHCHECK --interval=30s --timeout=3s --start-period=60s --retries=3 \
   CMD curl -f http://localhost:9000/health || exit 1
 EXPOSE 9000
 # Install production deps in the built directory, run migrations, then start
-CMD ["sh", "-c", "cd .medusa/server && yarn install --frozen-lockfile --production && npx @medusajs/medusa-cli@preview migrations run && node src/server.js"]
+CMD ["sh", "-c", "cd .medusa && yarn install --production && npx medusa migrations run && node dist/main.js"]
