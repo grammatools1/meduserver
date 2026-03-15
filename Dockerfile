@@ -51,14 +51,7 @@ RUN addgroup -S nodejs -g 1001 && \
     apk add --no-cache curl
 
 # Copy built application
-COPY --from=builder --chown=medusa:nodejs /server/node_modules ./node_modules
-COPY --from=builder --chown=medusa:nodejs /server/package.json ./package.json
-COPY --from=builder --chown=medusa:nodejs /server/medusa-config.js ./medusa-config.js
-COPY --from=builder --chown=medusa:nodejs /server/build.mjs ./build.mjs
-COPY --from=builder --chown=medusa:nodejs /server/index.js ./index.js
-COPY --from=builder --chown=medusa:nodejs /server/src ./src
-COPY --from=builder --chown=medusa:nodejs /server/data ./data
-
+COPY ..
 # Ensure correct permissions
 RUN chown -R medusa:nodejs /server
 
