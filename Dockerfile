@@ -21,7 +21,12 @@ RUN \
   else echo "No lockfile found." && exit 1; fi
 
 # Copy source
-COPY . .
+COPY --from=builder --chown=medusa:nodejs /server/node_modules ./node_modules
+COPY --from=builder --chown=medusa:nodejs /server/package.json ./package.json
+COPY --from=builder --chown=medusa:nodejs /server/medusa-config.js ./medusa-config.js
+COPY --from=builder --chown=medusa:nodejs /server/build.mjs ./build.mjs
+COPY --from=builder --chown=medusa:nodejs /server/index.js ./index.js
+COPY --from=builder --chown=medusa:nodejs /server/src ./src
 
 # Build Medusa
 RUN npm run build
